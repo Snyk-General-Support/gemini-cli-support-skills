@@ -16,3 +16,7 @@ source ~/.bash_profile
 ```
 
 Or open a new terminal tab/window.
+
+## Cases directory
+
+Configure creates **`~/Desktop/cases`** by default and sets **`SNYK_CASES_DIR`** in the managed profile block so skills can store per-case artifacts there.

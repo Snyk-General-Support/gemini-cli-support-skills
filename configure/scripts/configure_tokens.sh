@@ -25,6 +25,10 @@ PROFILE="$(detect_profile)"
 mkdir -p "$(dirname "${PROFILE}")"
 touch "${PROFILE}"
 
+# Support case folders for Snyk / analysis skills (default: ~/Desktop/cases)
+CASES_ROOT="${CASES_ROOT:-${HOME}/Desktop/cases}"
+mkdir -p "${CASES_ROOT}"
+
 extract_export_value() {
   local key="$1"
   local file="$2"
@@ -96,12 +100,14 @@ write_managed_block() {
   local file="$1"
   local github="$2"
   local snyk="$3"
+  local cases_root="$4"
   remove_managed_block "${file}"
   {
     echo ""
     echo "${MARK_BEGIN}"
     printf 'export GITHUB_TOKEN=%q\n' "${github}"
     printf 'export SNYK_TOKEN=%q\n' "${snyk}"
+    printf 'export SNYK_CASES_DIR=%q\n' "${cases_root}"
     echo "${MARK_END}"
     echo ""
   } >> "${file}"
@@ -141,8 +147,7 @@ fi
 
 if [[ "${need_github}" -eq 0 && "${need_snyk}" -eq 0 ]]; then
   echo ""
-  echo "Nothing to update."
-  exit 0
+  echo "Tokens are already valid; ensuring cases directory and SNYK_CASES_DIR in profile."
 fi
 
 if [[ "${need_github}" -eq 1 ]]; then
@@ -162,9 +167,10 @@ if [[ "${need_snyk}" -eq 1 ]]; then
 fi
 
 # GITHUB_VAL / SNYK_VAL already hold skipped (still-valid) or newly prompted values
-write_managed_block "${PROFILE}" "${GITHUB_VAL}" "${SNYK_VAL}"
+write_managed_block "${PROFILE}" "${GITHUB_VAL}" "${SNYK_VAL}" "${CASES_ROOT}"
 
 echo ""
+echo "Cases directory: ${CASES_ROOT}"
 echo "Updated ${PROFILE}."
 echo "Run: source ${PROFILE}"
-echo "Or open a new terminal so other skills can read GITHUB_TOKEN and SNYK_TOKEN."
+echo "Or open a new terminal so other skills can read GITHUB_TOKEN, SNYK_TOKEN, and SNYK_CASES_DIR."
