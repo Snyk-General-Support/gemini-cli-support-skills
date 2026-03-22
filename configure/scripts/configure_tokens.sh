@@ -29,6 +29,11 @@ touch "${PROFILE}"
 CASES_ROOT="${CASES_ROOT:-${HOME}/Desktop/cases}"
 mkdir -p "${CASES_ROOT}"
 
+# True if argument contains any non-whitespace character (empty / blank / spaces-only → false)
+has_token_value() {
+  [[ -n "${1//[[:space:]]/}" ]]
+}
+
 extract_export_value() {
   local key="$1"
   local file="$2"
@@ -44,6 +49,7 @@ extract_export_value() {
   line="${line//\'/}"
   line="${line#"${line%%[![:space:]]*}"}"
   line="${line%"${line##*[![:space:]]}"}"
+  has_token_value "${line}" || return 1
   echo "${line}"
 }
 
@@ -113,19 +119,29 @@ write_managed_block() {
   } >> "${file}"
 }
 
-# Resolve current GitHub token from profile (GITHUB_TOKEN or GH_TOKEN)
+# Resolve tokens: profile first, then current environment (empty / whitespace-only counts as unset)
 GITHUB_VAL="$(extract_export_value GITHUB_TOKEN "${PROFILE}" || true)"
-if [[ -z "${GITHUB_VAL}" ]]; then
+if ! has_token_value "${GITHUB_VAL}"; then
   GITHUB_VAL="$(extract_export_value GH_TOKEN "${PROFILE}" || true)"
 fi
+if ! has_token_value "${GITHUB_VAL}"; then
+  GITHUB_VAL="${GITHUB_TOKEN:-}"
+fi
+if ! has_token_value "${GITHUB_VAL}"; then
+  GITHUB_VAL="${GH_TOKEN:-}"
+fi
+
 SNYK_VAL="$(extract_export_value SNYK_TOKEN "${PROFILE}" || true)"
+if ! has_token_value "${SNYK_VAL}"; then
+  SNYK_VAL="${SNYK_TOKEN:-}"
+fi
 
 echo "Profile: ${PROFILE}"
 echo ""
 
 need_github=0
-if [[ -z "${GITHUB_VAL}" ]]; then
-  echo "GITHUB_TOKEN: not set in profile."
+if ! has_token_value "${GITHUB_VAL}"; then
+  echo "GITHUB_TOKEN: empty or missing (profile and environment)."
   need_github=1
 elif github_valid "${GITHUB_VAL}"; then
   echo "GITHUB_TOKEN: present and valid; skipping."
@@ -135,8 +151,8 @@ else
 fi
 
 need_snyk=0
-if [[ -z "${SNYK_VAL}" ]]; then
-  echo "SNYK_TOKEN: not set in profile."
+if ! has_token_value "${SNYK_VAL}"; then
+  echo "SNYK_TOKEN: empty or missing (profile and environment)."
   need_snyk=1
 elif snyk_valid "${SNYK_VAL}"; then
   echo "SNYK_TOKEN: present and valid; skipping."
@@ -152,7 +168,7 @@ fi
 
 if [[ "${need_github}" -eq 1 ]]; then
   GITHUB_VAL="$(prompt_secret "GITHUB_TOKEN")"
-  while [[ -z "${GITHUB_VAL}" ]] || ! github_valid "${GITHUB_VAL}"; do
+  while ! has_token_value "${GITHUB_VAL}" || ! github_valid "${GITHUB_VAL}"; do
     echo "Invalid or empty GitHub token. Try again (Ctrl+C to abort)." >&2
     GITHUB_VAL="$(prompt_secret "GITHUB_TOKEN")"
   done
@@ -160,7 +176,7 @@ fi
 
 if [[ "${need_snyk}" -eq 1 ]]; then
   SNYK_VAL="$(prompt_secret "SNYK_TOKEN")"
-  while [[ -z "${SNYK_VAL}" ]] || ! snyk_valid "${SNYK_VAL}"; do
+  while ! has_token_value "${SNYK_VAL}" || ! snyk_valid "${SNYK_VAL}"; do
     echo "Invalid or empty Snyk token. Try again (Ctrl+C to abort)." >&2
     SNYK_VAL="$(prompt_secret "SNYK_TOKEN")"
   done
