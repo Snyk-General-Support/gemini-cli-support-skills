@@ -24,7 +24,16 @@ Create an isolated repro case end-to-end:
 ## Required prerequisites
 
 - `gh` is authenticated to the personal GitHub account (`gh auth status`) for GitHub-based repro runs.
-- `snyk` CLI is authenticated (`snyk auth`).
+- `SNYK_TOKEN` is present and valid (validate via Snyk API, not CLI auth flow):
+
+  ```bash
+  curl -sS -o /dev/null -w "%{http_code}\n" \
+    -H "Authorization: token ${SNYK_TOKEN}" \
+    -H "Content-Type: application/json" \
+    "https://api.snyk.io/v1/user"
+  ```
+
+  Expected result: `200`
 - Case environment already configured (`SNYK_CASES_DIR` preferred).
 
 ## Inputs to collect from user
@@ -81,6 +90,7 @@ Trigger Snyk import for this repository.
 
 - By default, use the authenticated CLI's **default org**.
 - Only use an explicit org flag/override if the user provided one.
+- Do **not** run `snyk auth` or `snyk monitor` as part of token validation for this skill; use Snyk API token checks instead.
 
 Record imported project references in `"$CASE_DIR/pr-check-context.json"`.
 
