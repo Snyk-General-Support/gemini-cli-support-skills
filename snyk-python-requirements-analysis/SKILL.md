@@ -19,11 +19,15 @@ Given a **`requirements.txt`**, (optionally moved into a per-case folder), query
 ## Workflow
 1. Ensure a case folder exists:
    - If `CASE_DIR` is already set and the directory exists, reuse it.
-   - Otherwise, ask for `CASE_NUMBER` and create the folder using the `set-new-case` skill, then set `CASE_DIR` to the created directory.
+  - Otherwise, ask for `CASE_NUMBER` and create the folder using the `set-new-case` skill, then set `CASE_DIR` to the created directory.
+  - Track whether the folder was created in this run (a “fresh” case). If it was created now, assume `requirements.txt` is not inside it yet.
 
-2. **Prompt** for the path to **`requirements.txt`**.
+2. Decide how to get `requirements.txt`:
 
-3. Move the file into the case folder:
+   - If `"$CASE_DIR/requirements.txt"` already exists, reuse it (do not ask for a path again unless the user requests a different file).
+   - If it does **not** exist (including when the case folder was just created), **prompt the user** for the source path to `requirements.txt`.
+
+3. Move/copy the file into the case folder (only when `"$CASE_DIR/requirements.txt"` is missing):
 
    - Default destination: `"$CASE_DIR/requirements.txt"`
    - Then run the analysis against that destination path.
@@ -78,7 +82,9 @@ Given a **`requirements.txt`**, (optionally moved into a per-case folder), query
 ## Agent behavior
 
 - If `CASE_DIR` is not set (or the directory does not exist), create it by prompting for `CASE_NUMBER` and running `set-new-case`.
-- Do not assume the path to `requirements.txt`; **ask** if missing.
+- Do not assume the path to `requirements.txt`:
+  - If `"$CASE_DIR/requirements.txt"` exists, reuse it.
+  - If it does not exist (including a fresh case folder), prompt the user for the source path and move it into `"$CASE_DIR/requirements.txt"`.
 - Treat PyPI as **source of truth** for `requires_python` on the **chosen** release (not the user’s local venv).
 - If a package is missing on PyPI or the specifier cannot be satisfied, say so clearly in the table (Notes column).
 - When the user supplies a Python version to verify, use **`--check-python`** and explain **pass vs fail** in plain language.

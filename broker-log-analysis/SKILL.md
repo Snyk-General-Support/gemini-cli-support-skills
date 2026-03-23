@@ -27,7 +27,7 @@ Masked broker token lookup (for broker identity):
 6. Run triage script to produce `broker_triage.json` (inside `CASE_DIR`):
 
    ```bash
-   python3 broker-log-analysis/scripts/triage_broker_logs.py \
+   ./broker-log-analysis/scripts/triage_broker_logs.sh \
      --logs "$BROKER_LOGS_PATH" \
      --out "$CASE_DIR/broker_triage.json"
    ```
