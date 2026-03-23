@@ -5,7 +5,7 @@ description: Analyzes a requirements.txt using the PyPI JSON API to show each de
 
 # Python requirements → minimum Python (PyPI)
 
-Given a **`requirements.txt`**, query **pypi.org** (JSON API) for each **direct** dependency, resolve a **matching release** (latest that satisfies the specifier), read **`requires_python`** from PyPI, and:
+Given a **`requirements.txt`**, (optionally moved into a per-case folder), query **pypi.org** (JSON API) for each **direct** dependency, resolve a **matching release** (latest that satisfies the specifier), read **`requires_python`** from PyPI, and:
 
 1. Show a **table**: dependency → resolved version → `requires_python`.
 2. Suggest a **recommended minimum Python** that satisfies the combined constraints.
@@ -17,30 +17,52 @@ Given a **`requirements.txt`**, query **pypi.org** (JSON API) for each **direct*
 - **`-r` / nested requirements files** are not expanded in v1 of the script.
 
 ## Workflow
+1. Ensure a case folder exists:
+   - If `CASE_DIR` is already set and the directory exists, reuse it.
+   - Otherwise, ask for `CASE_NUMBER` and create the folder using the `set-new-case` skill, then set `CASE_DIR` to the created directory.
 
-1. **Prompt** for the path to **`requirements.txt`** (or accept it from the user message).
-2. Ensure script dependencies:  
+2. **Prompt** for the path to **`requirements.txt`**.
+
+3. Move the file into the case folder:
+
+   - Default destination: `"$CASE_DIR/requirements.txt"`
+   - Then run the analysis against that destination path.
+
+   Example:
+
+   ```bash
+   chmod +x "set-new-case /scripts/set_new_case.sh"
+   export CASE_DIR="$(./set-new-case\ /scripts/set_new_case.sh "$CASE_NUMBER")"
+
+   REQ_SRC="/path/to/requirements.txt"
+   REQ_DST="$CASE_DIR/requirements.txt"
+   mv "$REQ_SRC" "$REQ_DST"
+   ```
+
+4. Ensure script dependencies:
+
    `python3 -m pip install -r snyk-python-requirements-analysis/scripts/requirements.txt`
-3. **Run the analyzer** (Markdown table + recommendation):
+
+5. Run the analyzer (Markdown table + recommendation):
 
    ```bash
-   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py /path/to/requirements.txt
+   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py "$CASE_DIR/requirements.txt"
    ```
 
-4. **Optional — confirm a Python version** (e.g. user asks “is 3.10 ok?”):
+6. **Optional — confirm a Python version** (e.g. user asks “is 3.10 ok?”):
 
    ```bash
-   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py /path/to/requirements.txt --check-python 3.10
+   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py "$CASE_DIR/requirements.txt" --check-python 3.10
    ```
 
-5. **Optional — JSON** for tooling:
+7. **Optional — JSON** for tooling:
 
    ```bash
-   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py /path/to/requirements.txt --json
-   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py /path/to/requirements.txt --check-python 3.11 --json
+   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py "$CASE_DIR/requirements.txt" --json
+   ./snyk-python-requirements-analysis/scripts/analyze_requirements.py "$CASE_DIR/requirements.txt" --check-python 3.11 --json
    ```
 
-6. Summarize in natural language: table highlights, **recommended** Python, and **pass/fail** for `--check-python` if used.
+8. Summarize in natural language: table highlights, **recommended** Python, and **pass/fail** for `--check-python` if used.
 
 ## Scripts
 
@@ -55,6 +77,7 @@ Given a **`requirements.txt`**, query **pypi.org** (JSON API) for each **direct*
 
 ## Agent behavior
 
+- If `CASE_DIR` is not set (or the directory does not exist), create it by prompting for `CASE_NUMBER` and running `set-new-case`.
 - Do not assume the path to `requirements.txt`; **ask** if missing.
 - Treat PyPI as **source of truth** for `requires_python` on the **chosen** release (not the user’s local venv).
 - If a package is missing on PyPI or the specifier cannot be satisfied, say so clearly in the table (Notes column).
