@@ -116,6 +116,32 @@ Missing Data Flow: Data returns via HTTP, not the Websocket. If logs show reques
 
 Graceful vs. Forceful: Search for Shutting down client. If missing but client restarted, the OS/Orchestrator killed it (OOM, etc.).
 
+Connectivity test when `curl` is unavailable (Broker/agents):
+
+The Broker and agents images do not include `curl`. For connectivity checks to SCM, container registries, or agent endpoints, run Node-based tests from inside the same runtime environment.
+
+1. Enter the running container/pod shell first:
+   - Docker example: `docker exec -it <container_name_or_id> sh`
+   - Kubernetes example: `kubectl exec -it <pod_name> -- sh`
+
+2. Start Node REPL:
+   - `node`
+
+3. Test target URL status code:
+
+```javascript
+// test a URL with http
+http = require("http")
+http.get("<URL_HERE>", res => {console.log(`statusCode: ${res.statusCode}`)})
+
+// test a URL with https
+https = require("https")
+https.get("<URL_HERE>", res => {console.log(`statusCode: ${res.statusCode}`)})
+```
+
+4. Exit Node when done:
+   - `Ctrl + D`
+
 ❌ Error Code Decoder
 
 Error
