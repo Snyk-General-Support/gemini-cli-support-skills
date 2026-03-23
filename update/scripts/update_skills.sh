@@ -4,6 +4,7 @@ set -euo pipefail
 SKILL_REPO="${SKILL_REPO:-}"
 TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
 REMOTE_NAME="${GIT_REMOTE_NAME:-origin}"
+INSTALL_DIR="${INSTALL_DIR:-${HOME}/.cursor/skills}"
 
 if [[ -z "${SKILL_REPO}" ]]; then
   echo "SKILL_REPO is required (path to local skill repo)." >&2
@@ -49,5 +50,34 @@ git fetch "${REMOTE_NAME}" --prune
 
 echo "Pulling (fast-forward only)..."
 git pull --ff-only "${REMOTE_NAME}" "${current_branch}"
+
+echo "Syncing skills into ${INSTALL_DIR}..."
+
+if ! command -v rsync >/dev/null 2>&1; then
+  echo "rsync not found; falling back to cp -a (no delete). Please install rsync for exact sync." >&2
+  mkdir -p "${INSTALL_DIR}"
+  for d in "${SKILL_REPO}"/*; do
+    [[ -d "${d}" ]] || continue
+    if [[ -f "${d}/SKILL.md" ]]; then
+      name="$(basename "${d}")"
+      cp -a "${d}" "${INSTALL_DIR}/${name}"
+      echo "Installed: ${name}"
+    fi
+  done
+else
+  mkdir -p "${INSTALL_DIR}"
+  installed_count=0
+  for d in "${SKILL_REPO}"/*; do
+    [[ -d "${d}" ]] || continue
+    if [[ -f "${d}/SKILL.md" ]]; then
+      name="$(basename "${d}")"
+      # Sync directory contents to match the repo (includes new skills + updates)
+      rsync -a --delete "${d}/" "${INSTALL_DIR}/${name}/" || true
+      installed_count=$((installed_count+1))
+      echo "Installed/updated: ${name}"
+    fi
+  done
+  echo "Skill sync complete (${installed_count} skills processed)."
+fi
 
 echo "Done. Skills are up to date."

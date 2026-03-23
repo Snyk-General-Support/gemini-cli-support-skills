@@ -29,6 +29,7 @@ Clone or point `origin` at that URL. Details: [references/remote.md](references/
 - **Target directory (required):** local path to the skills repo → `SKILL_REPO`.
 - **Optional:** `GIT_REMOTE_NAME` (default: `origin`).
 - **Token (optional for public repos):** `GITHUB_TOKEN` or `GH_TOKEN`.
+- **Install directory (optional):** where to sync skills into Cursor → `INSTALL_DIR` (default: `~/.cursor/skills`).
 
 ## Workflow
 
@@ -42,7 +43,7 @@ Clone or point `origin` at that URL. Details: [references/remote.md](references/
    SKILL_REPO=~/Documents/Snyk/gemini-cli-support-skills ./update/scripts/update_skills.sh
    ```
 
-5. **Verify:** script prints branch, remote URL, and fetch/pull result.
+5. **Verify:** script prints branch, remote URL, fetch/pull result, and then syncs (installs/updates) any skills found as top-level directories containing a `SKILL.md`.
 
 ## Script location
 
@@ -53,6 +54,9 @@ Behavior:
 - Validates `SKILL_REPO` is a git repo.
 - For **HTTPS** `https://github.com/...` without embedded credentials: if a token is set, temporarily sets `origin` to `https://TOKEN@github.com/...` for `fetch`/`pull`, then restores the original URL.
 - If **no token** is set: runs normal `git fetch` / `git pull --ff-only` (works for **public** repos).
+- Then syncs skills:
+  - For each top-level directory under `SKILL_REPO` that contains a `SKILL.md`, copies/syncs that directory into `INSTALL_DIR`.
+  - This ensures **newly added skills are installed** and existing ones are updated.
 
 ## References
 
